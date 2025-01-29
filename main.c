@@ -16,11 +16,6 @@ volatile uint8_t banderas = 0;
 volatile uint8_t contador1 = 0;
 volatile uint8_t contador2 = 0;
 
-// Función de antirrebote
-void debounce() {
-	_delay_ms(50);  // Pequeño retardo para evitar rebotes
-}
-
 void setup() {
 	
 	// Configurar pines de LEDs como salida (PORTB)
@@ -64,36 +59,34 @@ int main(void) {
 		}
 		if (banderas & (1 << 2)) {  // Si el bit 3 está activo (botón PC2 presionado)
 			contador1++;
-			if (contador1 > 15) {
-				contador1 = 15;  // Dejar en 15
-				contador2 = 0;  // Reiniciar después de 15
-				PORTD = (PORTD & 0xF0) | (contador2 & 0x0F);
+			if (contador1 > 3) {
+				PORTD = 0xF0;
 				banderas &= ~(1 << 1);  // Limpiar el bit 1
 				ShowDisp(1);  // Muestra el número en el display
+			} else {
+				// Actualizar solo los últimos 4 bits del puerto D (PD4-PD7)
+				PORTD = (PORTD & 0x0F) | ((1 << (contador1-1)) << 4);
 			}
-			// Actualizar solo los primeros 4 bits del puerto D (PD0-PD3)
-			PORTD = (PORTD & 0x0F) | ((contador1 & 0x0F) << 4);
 			banderas &= ~(1 << 2);  // Limpiar el bit 2
 		}
 		if (banderas & (1 << 3)) {  // Si el bit 2 está activo (botón PC3 presionado)
 			contador2++;
-			if (contador2 > 15) {
-				contador1 = 0;  // Reiniciar después de 15
-				contador2 = 15;  // Dejar en 15
-				PORTD = (PORTD & 0x0F) | ((contador1 & 0x0F) << 4);
+			if (contador2 > 3) {
+				PORTD = 0x0F;
 				banderas &= ~(1 << 1);  // Limpiar el bit 1
 				ShowDisp(2);  // Muestra el número en el display
+			} else {
+				// Actualizar solo los primeros 4 bits del puerto D (PD0-PD3)
+				PORTD = (PORTD & 0xF0) | (1 << (contador2-1));
 			}
-			// Actualizar solo los últimos 4 bits del puerto D (PD0-PD3)
-			PORTD = (PORTD & 0xF0) | (contador2 & 0x0F);
-			banderas &= ~(1 << 3);  // Limpiar el bit 3
+			banderas &= ~(1 << 3);  // Limpiar el bit 3	
 		}
 	}
 }
 
 // Rutina de interrupción para botones en PCINT8-PCINT14 (PORTC)
 ISR(PCINT1_vect) {
-	debounce();  // Aplicar antirrebote
+	//_delay_ms(50);  // Pequeño retardo para evitar rebotes
 
 	// Verificar el estado de los botones después del rebote
 	if (!(PINC & (1 << PC1))) {
